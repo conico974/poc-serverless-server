@@ -1,0 +1,19 @@
+{
+  "name": "poc-serverless-server",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.3",
+    "@types/aws-lambda": "8.10.145",
+    "@types/bun": "latest"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "esbuild": "^0.24.0",
+    "sst": "3.1.61"
+  }
+}
