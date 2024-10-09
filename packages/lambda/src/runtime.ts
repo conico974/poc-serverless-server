@@ -7,7 +7,7 @@ import type {
 } from "@poc/types";
 import { Writable } from "node:stream";
 import { finished } from "node:stream/promises";
-const lambdaId = Math.random().toString();
+export const lambdaId = Math.random().toString();
 
 class CustomWritableStream extends Writable {
 	private headersSent = false;
@@ -159,46 +159,37 @@ class WebSocketHandler {
 		this.handler(req, stream);
 	}
 }
-export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
-	if (!event.body) {
+
+export function withWsHandler(
+	fn: (event: WsIncomingRequest, stream: CustomWritableStream) => Promise<void>,
+) {
+	const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
+		if (!event.body) {
+			return {
+				statusCode: 400,
+				body: JSON.stringify({ message: "No body provided" }),
+			};
+		}
+
+		const { serverId, host } = JSON.parse(
+			event.body,
+		) as WsInitialIncomingRequest;
+		process.env.WORKER_URL = `wss://${host}/websocket`;
+		const wsHandler = new WebSocketHandler((event, stream) => {
+			try {
+				return fn(event, stream);
+			} catch (e) {
+				stream.end(`Error: ${e}`);
+				return Promise.resolve();
+			}
+		}, serverId);
+
+		await wsHandler.promise;
+
 		return {
-			statusCode: 400,
-			body: JSON.stringify({ message: "No body provided" }),
+			statusCode: 200,
+			body: JSON.stringify({ message: `Lambda id: ${lambdaId}` }),
 		};
-	}
-
-	const { serverId, host } = JSON.parse(event.body) as WsInitialIncomingRequest;
-	process.env.WORKER_URL = `wss://${host}/websocket`;
-	const wsHandler = new WebSocketHandler(async (event, stream) => {
-		stream.writeHeaders({
-			"Content-Type": "text/event-stream",
-			"x-what": "what",
-			"Transfer-Encoding": "chunked",
-		});
-		stream.write(`Hello, World!${new Date().toISOString()}, ${lambdaId}\n\n`);
-		stream.write(`Lambda ID: ${lambdaId}\n\n`);
-		stream.write(
-			`Incoming request: ${JSON.stringify(event)}, ${new Date().toISOString()} \n\n`,
-		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 1000);
-		});
-		stream.write(`After 1s ${new Date().toISOString()}\n\n`);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 1000);
-		});
-		stream.write(`After 2s ${new Date().toISOString()}\n\n`);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 1000);
-		});
-		stream.write(`After 3s ${new Date().toISOString()}\n\n`);
-		stream.end(`ending stream${new Date().toISOString()}\n\n`);
-	}, serverId);
-
-	await wsHandler.promise;
-
-	return {
-		statusCode: 200,
-		body: JSON.stringify({ message: "Hello, World!" }),
 	};
-}; // lambda async handler
+	return handler;
+}

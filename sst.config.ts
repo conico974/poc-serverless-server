@@ -11,7 +11,7 @@ export default $config({
 	},
 	async run() {
 		const fn = new sst.aws.Function("poc-serverless-server", {
-			handler: "packages/lambda/index.handler",
+			handler: "packages/lambda/src/index.handler",
 			nodejs: {
 				install: ["bufferutil"],
 			},
