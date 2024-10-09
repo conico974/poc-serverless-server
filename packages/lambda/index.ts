@@ -121,7 +121,7 @@ class WebSocketHandler {
 					this.resolve();
 				});
 			},
-			10 * 60 * 1000,
+			Number.parseInt(process.env.MAX_UPTIME ?? "150000", 10),
 		);
 	}
 
@@ -141,13 +141,16 @@ class WebSocketHandler {
 				// Check if the activeConnections map is empty
 				// If it is, set a timeout to close the connection
 				if (this.activeConnections.size === 0) {
-					this.activeTimeout = setTimeout(() => {
-						this.ws.close(
-							1000,
-							JSON.stringify({ type: "closing", serverId: this.serverId }),
-						);
-						this.resolve();
-					}, 5000);
+					this.activeTimeout = setTimeout(
+						() => {
+							this.ws.close(
+								1000,
+								JSON.stringify({ type: "closing", serverId: this.serverId }),
+							);
+							this.resolve();
+						},
+						Number.parseInt(process.env.LAMBDA_AFTER_TIMEOUT ?? "5000", 10),
+					);
 				}
 			},
 			this.serverId,

@@ -17,6 +17,12 @@ export default $config({
 			},
 			url: true,
 			timeout: "3 minutes",
+			environment: {
+				// Max time (in ms) the lambda stay up, after this time it will try to close the connection
+				MAX_UPTIME: "150000",
+				// Time (in ms) the lambda will wait after all the connections are closed to close the websocket connection - You will be charged for this time
+				LAMBDA_AFTeR_TIMEOUT: "5000",
+			},
 		});
 
 		return {
